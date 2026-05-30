@@ -7,6 +7,7 @@ import type {
   CSSAnimationKeyframeBlock,
   CSSAnimationKeyframes,
 } from '../types';
+import { normalizeWebKeyframes } from './normalization';
 import { parseTimingFunction } from './utils';
 
 export function processKeyframeDefinitions<TStyle extends object>(
@@ -15,7 +16,12 @@ export function processKeyframeDefinitions<TStyle extends object>(
 ) {
   const propsBuilder = getWebSvgPropsBuilder(componentName) ?? webPropsBuilder;
 
-  return Object.entries(definitions)
+  // Apply whole-set fixups a per-prop processor can't express (e.g. seeding a
+  // missing strokeDasharray endpoint, padding a trailing Z so open->closed path
+  // morphs interpolate) before serializing each keyframe block.
+  const keyframes = normalizeWebKeyframes(definitions);
+
+  return Object.entries(keyframes)
     .reduce<string[]>((acc, [timestamp, rules]) => {
       const step = hasSuffix(timestamp)
         ? timestamp
